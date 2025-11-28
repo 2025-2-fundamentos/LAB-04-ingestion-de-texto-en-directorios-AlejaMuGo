@@ -4,6 +4,9 @@
 """
 Escriba el codigo que ejecute la accion solicitada en cada pregunta.
 """
+import os
+import zipfile
+import csv
 
 
 def pregunta_01():
@@ -71,3 +74,46 @@ def pregunta_01():
 
 
     """
+    input_zip_path = "files/input.zip"
+    extract_root = "files"
+    data_root = os.path.join(extract_root, "input")
+    output_dir = "files/output"
+
+    # Descomprimir el zip en la carpeta "files"
+    if os.path.exists(input_zip_path):
+        with zipfile.ZipFile(input_zip_path, "r") as zf:
+            zf.extractall(extract_root)
+
+    # Crear carpeta de salida "files/output" si no existe
+    os.makedirs(output_dir, exist_ok=True)
+
+    def construir_csv(split_name: str):
+        base_dir = os.path.join(data_root, split_name)  # files/input/train o files/input/test
+        rows = []
+
+        if not os.path.isdir(base_dir):
+            return
+
+        # sentiment = nombre de la carpeta (negative, neutral, positive)
+        for sentiment in sorted(os.listdir(base_dir)):
+            sentiment_dir = os.path.join(base_dir, sentiment)
+            if not os.path.isdir(sentiment_dir):
+                continue
+
+            for fname in sorted(os.listdir(sentiment_dir)):
+                if not fname.lower().endswith(".txt"):
+                    continue
+                fpath = os.path.join(sentiment_dir, fname)
+                with open(fpath, "r", encoding="utf-8") as f:
+                    text = f.read().strip()
+                    text = " ".join(text.split())
+                rows.append((text, sentiment))
+
+        out_path = os.path.join(output_dir, f"{split_name}_dataset.csv")
+        with open(out_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["phrase", "target"])
+            writer.writerows(rows)
+
+    construir_csv("train")
+    construir_csv("test")
